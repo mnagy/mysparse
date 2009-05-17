@@ -26,26 +26,6 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 
 %{
   #define YYSTYPE void *
-  #include "config.h"
-  #include "system.h"
-  #include "coretypes.h"
-  #include "tm.h"
-  #include "tree.h"
-  #include "rtl.h"
-  #include "tm_p.h"
-  #include "hard-reg-set.h"
-  #include "basic-block.h"
-  #include "output.h"
-  #include "errors.h"
-  #include "flags.h"
-  #include "function.h"
-  #include "expr.h"
-  #include "diagnostic.h"
-  #include "tree-flow.h"
-  #include "timevar.h"
-  #include "tree-dump.h"
-  #include "tree-pass.h"
-  #include "toplev.h"
   #include "tree-match.h"
   int yylex (void);
   void yyerror (char const *);
