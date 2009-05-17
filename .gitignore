@@ -1,0 +1,10 @@
+# Generic
+*~
+*.o
+*.tab.c
+*.swp
+.swp
+
+# Generated
+condate.tab.c
+mysparse
