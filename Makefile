@@ -1,7 +1,7 @@
 .PHONY: all clean
 
 BISON = bison
-OBJS = condate.tab.o main.o tree-check.o tree-match.o
+OBJS = alloc.c condate.tab.o main.o tree-check.o tree-match.o
 
 all: mysparse
 clean:

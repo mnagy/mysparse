@@ -19,26 +19,8 @@ along with GCC; see the file COPYING.  If not, write to the Free
 Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 02110-1301, USA.  */
 
-#include "config.h"
-#include "system.h"
-#include "coretypes.h"
-#include "tm.h"
-#include "tree.h"
-#include "rtl.h"
-#include "tm_p.h"
-#include "hard-reg-set.h"
-#include "basic-block.h"
-#include "output.h"
-#include "errors.h"
-#include "flags.h"
-#include "function.h"
-#include "expr.h"
-#include "diagnostic.h"
-#include "tree-flow.h"
-#include "timevar.h"
-#include "tree-dump.h"
-#include "tree-pass.h"
-#include "toplev.h"
+#include <stdio.h>
+
 #include "tree-match.h"
 
 /* The tree matching user interface is described in tree-pattern.h.  */
@@ -48,7 +30,7 @@ hole local_holes[LOCAL_MAX];
 
 /* Check whether a variable is a temporary introduced by the compiler.  */
 
-static bool is_tmp_var(tree var)
+static bool is_tmp_var(struct statement *var)
 {
 	return false;
 #if 0
@@ -67,7 +49,7 @@ static bool is_tmp_var(tree var)
 
 /* If t is a cast expression, return the value without the cast.  */
 
-static tree substitute_cast_expr(tree t)
+static tree substitute_cast_expr(struct statement *t)
 {
 #if 0
 	if (TREE_CODE(t) == CONVERT_EXPR || TREE_CODE(t) == NOP_EXPR)
@@ -82,11 +64,11 @@ static tree substitute_cast_expr(tree t)
    return its value; otherwise return NULL.  INCLUDING_CRT is set to
    true on recursive calls.  */
 
-static tree substitute_tmp_var(tree var, cfg_node ctx_node, bool including_crt)
+static struct statement *substitute_tmp_var(struct statement *var, cfg_node ctx_node, bool including_crt)
 {
 	return NULL;
 #if 0
-	tree val;
+	struct statement *val;
 	if (!is_tmp_var(var))
 		return NULL;
 
@@ -110,11 +92,22 @@ static tree substitute_tmp_var(tree var, cfg_node ctx_node, bool including_crt)
 #endif
 }
 
-static bool tree_equal_mod_tmps(tree, tree, cfg_node, cfg_node);
+/* FIXME: These should actually DO something. */
+static VEC(tree_chunk, heap) *lazy_dump_generic_node(struct statement *stmt)
+{
+	return VEC_alloc(tree_chunk, heap, 10);
+}
+
+static void pp_free_list(VEC(tree_chunk, heap) *chunk)
+{
+	VEC_free(tree_chunk, heap, chunk);
+}
+
+static bool tree_equal_mod_tmps(struct statement *, struct statement *, cfg_node, cfg_node);
 
 /* Worker function for tree_equal_mod_tmps.  */
 
-static bool tree_equal(tree t1, tree t2, cfg_node ctx_node1, cfg_node ctx_node2)
+static bool tree_equal(struct statement *t1, struct statement *t2, cfg_node ctx_node1, cfg_node ctx_node2)
 {
 	VEC(tree_chunk, heap) * chunks1;
 	VEC(tree_chunk, heap) * chunks2;
@@ -128,8 +121,8 @@ static bool tree_equal(tree t1, tree t2, cfg_node ctx_node1, cfg_node ctx_node2)
 	if (t1 == t2)
 		return true;
 
-	chunks1 = lazy_dump_generic_node(t1, 0, false);
-	chunks2 = lazy_dump_generic_node(t2, 0, false);
+	chunks1 = lazy_dump_generic_node(t1);
+	chunks2 = lazy_dump_generic_node(t2);
 
 	len1 = VEC_length(tree_chunk, chunks1);
 	len2 = VEC_length(tree_chunk, chunks2);
@@ -166,9 +159,9 @@ static bool tree_equal(tree t1, tree t2, cfg_node ctx_node1, cfg_node ctx_node2)
    tmp vars with their values.  */
 
 static bool
-tree_equal_mod_tmps(tree t1, tree t2, cfg_node ctx_node1, cfg_node ctx_node2)
+tree_equal_mod_tmps(struct statement *t1, struct statement *t2, cfg_node ctx_node1, cfg_node ctx_node2)
 {
-	//tree val;
+	//struct statement *val;
 
 	if ((!t1 || !t2))
 		return (t1 == t2);
@@ -187,7 +180,7 @@ tree_equal_mod_tmps(tree t1, tree t2, cfg_node ctx_node1, cfg_node ctx_node2)
 #endif
 }
 
-static char tree_1st_char(tree);
+static char tree_1st_char(struct statement *);
 
 /* Get the first character of (the printed form of) a tree chunk.  */
 
@@ -219,16 +212,19 @@ chunks_lookahead(VEC(tree_chunk, heap) * chunks, unsigned int i)
 
 /* Get the first character of (the printed form of) a tree.  */
 
-static char tree_1st_char(tree t)
+static char tree_1st_char(struct statement *t)
 {
 	VEC(tree_chunk, heap) * chunks;
 	tree_chunk chunk;
 
+	/* XXX: Uhm.. hopefuly, this won't be missing.. */
+#if 0
 	/* Don't hung on unnamed vars, etc.  Cannot dump these nodes.  */
 	if (TREE_CODE(t) == VAR_DECL || TREE_CODE_CLASS(TREE_CODE(t)) == 'x')
 		return '\0';
+#endif
 
-	chunks = lazy_dump_generic_node(t, 0, false);
+	chunks = lazy_dump_generic_node(t);
 	chunk = chunks_lookahead(chunks, 0);
 	pp_free_list(chunks);
 
@@ -258,7 +254,7 @@ static char pattern_lookahead(patt_info * patt, int n)
 	return s[0];
 }
 
-static bool match_tree_pattinfo(tree, patt_info *, const char *, cfg_node);
+static bool match_tree_pattinfo(struct statement *, patt_info *, const char *, cfg_node);
 
 /* Worker function for match_tree_pattinfo.  Matches a lazy list with
    a pattern.  */
@@ -327,14 +323,14 @@ match_chunks_pattinfo(VEC(tree_chunk, heap) * chunks, patt_info * patt,
    some tmp vars are to be searched for from this point backwards.  */
 
 static bool
-match_tree_pattinfo(tree t, patt_info * patt, const char *delim,
+match_tree_pattinfo(struct statement *t, patt_info * patt, const char *delim,
 		    cfg_node ctx_node)
 {
-	tree *pt;
+	struct statement **pt;
 	hole *ph = NULL;
 	bool res;
 	int parskip = 0;
-	tree val;
+	struct statement *val;
 
 	if (patt->format_spec[0] == '%'
 	    && *delim == pattern_lookahead(patt, 2)) {
@@ -342,13 +338,13 @@ match_tree_pattinfo(tree t, patt_info * patt, const char *delim,
 		if (patt->format_spec[1] != '_') {
 			/* not "any" hole */
 			if (patt->args_ptr)	/* anonymous holes */
-				pt = va_arg(*patt->args_ptr, tree *);
+				pt = va_arg(*patt->args_ptr, struct statement **);
 			else {
 				/* named holes */
 				ph = get_hole_named(patt->format_spec[1]);
 
 				if (!ph)
-					fatal_error
+					die
 					    ("Invalid pattern variable: %%%c\n",
 					     patt->format_spec[1]);
 
@@ -404,8 +400,8 @@ match_tree_pattinfo(tree t, patt_info * patt, const char *delim,
 		}
 #endif
 
-		maybe_init_pretty_print(stdout);
-		chunks = lazy_dump_generic_node(t, 0, false);
+		//maybe_init_pretty_print(stdout);
+		chunks = lazy_dump_generic_node(t);
 		res = match_chunks_pattinfo(chunks, patt, delim, ctx_node);
 		pp_free_list(chunks);
 
@@ -505,7 +501,7 @@ void print_local_holes(void)
 	for (i = 0; i < LOCAL_MAX; i++) {
 		if (local_holes[i].tree) {
 			fprintf(stderr, "local_holes[%d] == ", i);
-			print_generic_expr(stderr, local_holes[i].tree, 0);
+			//print_generic_expr(stderr, local_holes[i].tree, 0);
 			fprintf(stderr, "\n");
 		}
 	}
@@ -524,7 +520,7 @@ void print_global_holes(void)
 			if (state)
 				fprintf(stderr, ", ");
 			fprintf(stderr, "%c <- ", 'A' + i);
-			print_generic_expr(stderr, global_holes[i].tree, 0);
+			//print_generic_expr(stderr, global_holes[i].tree, 0);
 			state = 1;
 		}
 	}
@@ -537,7 +533,7 @@ void print_global_holes(void)
    true if the tree completely matched the pattern, false otherwise.
    Even on unsuccessful match, some holes might be filled in.  */
 
-bool tree_scanf(tree t, const char *fmt, cfg_node ctx_node, ...)
+bool tree_scanf(struct statement *t, const char *fmt, cfg_node ctx_node, ...)
 {
 	patt_info patt;
 	va_list ap;
@@ -558,7 +554,7 @@ bool tree_scanf(tree t, const char *fmt, cfg_node ctx_node, ...)
 
 /* Match a tree against an atomic pattern with named holes.  */
 
-bool tree_match(tree t, const char *fmt, cfg_node ctx_node)
+bool tree_match(struct statement *t, const char *fmt, cfg_node ctx_node)
 {
 	patt_info patt;
 	bool res;
@@ -580,7 +576,7 @@ bool tree_match(tree t, const char *fmt, cfg_node ctx_node)
 
 /* Match a tree against a disjunctive pattern with named holes.  */
 
-bool tree_match_disj(tree t, pattern patt, cfg_node ctx_node)
+bool tree_match_disj(struct statement *t, pattern patt, cfg_node ctx_node)
 {
 	if (!patt)
 		return false;
