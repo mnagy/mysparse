@@ -19,26 +19,8 @@ along with GCC; see the file COPYING.  If not, write to the Free
 Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 02110-1301, USA.  */
 
-#include "config.h"
-#include "system.h"
-#include "coretypes.h"
-#include "tm.h"
-#include "tree.h"
-#include "rtl.h"
-#include "tm_p.h"
-#include "hard-reg-set.h"
-#include "basic-block.h"
-#include "output.h"
-#include "errors.h"
-#include "flags.h"
-#include "function.h"
-#include "expr.h"
-#include "diagnostic.h"
-#include "tree-flow.h"
-#include "timevar.h"
-#include "tree-dump.h"
-#include "tree-pass.h"
-#include "toplev.h"
+#include <stdio.h>
+
 #include "tree-match.h"
 
 /* Raise a warning upon detecting a satisfied condate.  The concept of
@@ -47,6 +29,9 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 
 static void tree_check_warning(condate cond, tree stmt, int check_option)
 {
+	/* FIXME: Use sparse_warning() and struct position here */
+	fprintf(stderr, "I have found something\n");
+#if 0
 	location_t saved_location = input_location;
 
 	if (EXPR_HAS_LOCATION(stmt))
@@ -68,12 +53,15 @@ static void tree_check_warning(condate cond, tree stmt, int check_option)
 	}
 
 	input_location = saved_location;
+#endif
 }
 
 /* Initialization function for the tree-check pass.  */
 
 static void tree_check_init(void)
 {
+	/* XXX: This is not needed for now.. */
+#if 0
 	basic_block bb;
 	block_stmt_iterator bsi;
 
@@ -82,8 +70,11 @@ static void tree_check_init(void)
 	FOR_EACH_BB(bb)
 	    for (bsi = bsi_start(bb); !bsi_end_p(bsi); bsi_next(&bsi))
 		TREE_VISITED(bsi_stmt(bsi)) = 0;
+#endif
 }
 
+/* FIXME: For now, let's just tree_scan() */
+#if 0
 /* Visit a CFG node.  Used in tree_check_instance.  */
 
 static bool check_node(cfg_node node, condate cond)
@@ -106,7 +97,10 @@ static bool check_node(cfg_node node, condate cond)
 	} else
 		return 1;	/* follow_all */
 }
+#endif
 
+/* FIXME: For now, let's just tree_scan() */
+#if 0
 /* Check a condate instance over the CFG of the current function.  */
 
 static void tree_check_instance(condate cond)
@@ -195,7 +189,10 @@ static void tree_check_instance(condate cond)
 
 	VEC_free(cfg_node, heap, stack);
 }
+#endif
 
+/* FIXME: For now, let's just tree_scan() */
+#if 0
 /* Collect new condate instances.  An instance is new if the
    combination of global hole values has not been seen yet.  */
 
@@ -214,6 +211,7 @@ static void push_global_holes_if_new(VEC(hole_p, heap) * stack)
 	VEC_safe_push(hole_p, heap, stack, save_global_holes());
 	reset_global_holes();
 }
+#endif
 
 /* Check a trivial condate consisting only in a (FROM) pattern. 
    This comes to reporting every match of the pattern in a function.  */
@@ -246,9 +244,12 @@ static void tree_scan(condate cond)
 
 static void tree_check(condate cond)
 {
+/* FIXME: For now, let's just tree_scan() */
+#if 0
 	VEC(hole_p, heap) * stack;
 	pattern patt = cond->from;
 	basic_block bb;
+#endif
 
 	/* Check for trivial condates.  */
 	if (!cond->to) {
@@ -256,6 +257,8 @@ static void tree_check(condate cond)
 		return;
 	}
 
+/* FIXME: For now, let's just tree_scan() */
+#if 0
 	/* Allocate stack for collecting condate instances.  */
 	stack = VEC_alloc(hole_p, heap, 10);
 	patt = cond->from;
@@ -282,6 +285,7 @@ static void tree_check(condate cond)
 	}
 
 	VEC_free(hole_p, heap, stack);
+#endif
 }
 
 /* Print a condate.  */
@@ -370,50 +374,23 @@ static int parse_check_file_once(const char *file)
 /* Main function of the tree-check pass.  Triggered either by
    -ftree-check or -ftree-checks.  */
 
-unsigned int
-execute_tree_check(const char *file, const char *tree_check_string)
+void
+execute_tree_check(const char *file, const char *string)
 {
 	tree_check_init();
 
 	if (file) {
-		if (parse_check_file_once() < 0)
-			return 0;
-	} else {
-		/* tree_check_string != NULL */
+		if (parse_check_file_once(file) < 0)
+			return;
+	} else if (string != NULL) {
 		static const char *current_check_string = NULL;
 		if (!current_check_string) {
 			condate cond =
-			    mkcond(tree_check_string, mkpat(tree_check_string),
+			    mkcond(string, mkpat(string),
 				   NULL, NULL, NULL, NULL);
 			add_condate(cond);
-			current_check_string = tree_check_string;
+			current_check_string = string;
 		}
 	}
 	execute_conds(conds, n_conds);
-
-	return 0;
 }
-
-#if 0
-static bool gate_tree_check(void)
-{
-	return ((tree_check_file != 0 || tree_check_string != 0)
-		&& basic_block_info != 0);
-}
-
-struct tree_opt_pass pass_check = {
-	"check",		/* name */
-	gate_tree_check,	/* gate */
-	execute_tree_check,	/* execute */
-	NULL,			/* sub */
-	NULL,			/* next */
-	0,			/* static_pass_number */
-	TV_TREE_CHECK,		/* tv_id */
-	PROP_cfg,		/* | PROP_ssa, *//* properties_required */
-	0,			/* properties_provided */
-	0,			/* properties_destroyed */
-	0,			/* todo_flags_start */
-	0,			/* todo_flags_finish */
-	0			/* letter */
-};
-#endif
