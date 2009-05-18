@@ -4,6 +4,8 @@
 #include <sparse/token.h>
 #include <sparse/symbol.h>
 
+void execute_tree_check(const char *file, const char *string, struct symbol_list *list);
+
 int main(int argc, char **argv)
 {
 	struct symbol_list *list;
@@ -14,6 +16,7 @@ int main(int argc, char **argv)
 	list = sparse_initialize(argc, argv, &files);
 	FOR_EACH_PTR_NOTAG(files, file) {
 		list = sparse(file);
+		execute_tree_check(NULL, "from %_", list);
 	} END_FOR_EACH_PTR_NOTAG(file);
 
 	return 0;

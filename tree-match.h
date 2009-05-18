@@ -59,17 +59,17 @@ static inline cfg_node bb_1st_cfg_node(basic_block bb)
 #endif
 
 /* XXX: Do we really need a tree_chunk structure? */
-typedef struct tree_chunk_s {
+struct tree_chunk {
   /* Reference to a subtree.  */
   struct statement *t;
   /* A token.  */
   char *s;
   /* A token of only one char is not stored in a malloc-ed string.  */
   char c;
-} *tree_chunk;
+};
 
-DEF_VEC_P (tree_chunk);
-DEF_VEC_ALLOC_P (tree_chunk, heap);
+DECLARE_ALLOCATOR(tree_chunk);
+DECLARE_PTR_LIST(tree_chunk_list, tree_chunk);
 
 /* XXX */
 

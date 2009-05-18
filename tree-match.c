@@ -92,15 +92,40 @@ static struct statement *substitute_tmp_var(struct statement *var, cfg_node ctx_
 #endif
 }
 
-/* FIXME: These should actually DO something. */
-static VEC(tree_chunk, heap) *lazy_dump_generic_node(struct statement *stmt)
+static struct tree_chunk *alloc_tree_chunk(void)
 {
-	return VEC_alloc(tree_chunk, heap, 10);
+	tree_chunk *res = __alloc_tree_chunk(0);
+	memset(res, 0, sizeof(*res));
+	return res;
 }
 
-static void pp_free_list(VEC(tree_chunk, heap) *chunk)
+static void free_tree_chunk(struct tree_chunk *tc)
 {
-	VEC_free(tree_chunk, heap, chunk);
+	__free_tree_chunk(tc);
+}
+
+static int tree_chunk_list_size(struct tree_chunk_list *list)
+{
+	return ptr_list_size(list);
+}
+
+/* FIXME: These should actually DO something. */
+static struct tree_chunk_list *lazy_dump_generic_node(struct statement *stmt)
+{
+	struct tree_chunk_list *res = NULL;
+	struct tree_chunk *tc = alloc_tree_chunk();
+
+	add_ptr_list(res, tc);
+	return res;
+}
+
+static void pp_free_list(struct tree_chunk_list *list)
+{
+	struct tree_chunk *tc;
+
+	FOR_EACH_PTR(list, tc) {
+		free_tree_chunk(tc);
+	} END_FOR_EACH_PTR(tc);
 }
 
 static bool tree_equal_mod_tmps(struct statement *, struct statement *, cfg_node, cfg_node);
@@ -109,9 +134,9 @@ static bool tree_equal_mod_tmps(struct statement *, struct statement *, cfg_node
 
 static bool tree_equal(struct statement *t1, struct statement *t2, cfg_node ctx_node1, cfg_node ctx_node2)
 {
-	VEC(tree_chunk, heap) * chunks1;
-	VEC(tree_chunk, heap) * chunks2;
-	tree_chunk chunk1, chunk2;
+	struct tree_chunk_list *chunks1 = NULL;
+	struct tree_chunk_list *chunks2 = NULL;
+	struct tree_chunk chunk1, chunk2;
 	int len1, len2, i;
 	bool res = false;
 
@@ -124,8 +149,8 @@ static bool tree_equal(struct statement *t1, struct statement *t2, cfg_node ctx_
 	chunks1 = lazy_dump_generic_node(t1);
 	chunks2 = lazy_dump_generic_node(t2);
 
-	len1 = VEC_length(tree_chunk, chunks1);
-	len2 = VEC_length(tree_chunk, chunks2);
+	len1 = tree_chunk_list_size(chunks1);
+	len2 = tree_chunk_list_size(chunks2);
 
 	if (len1 != len2)
 		goto mismatch;
@@ -332,6 +357,7 @@ match_tree_pattinfo(struct statement *t, patt_info * patt, const char *delim,
 	int parskip = 0;
 	struct statement *val;
 
+	info(t->pos, "tree pattinfo");
 	if (patt->format_spec[0] == '%'
 	    && *delim == pattern_lookahead(patt, 2)) {
 		/* lookahead(1) ok */

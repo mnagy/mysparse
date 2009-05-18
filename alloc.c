@@ -1,9 +1,3 @@
-#include <stdlib.h>
+#include <sparse/allocate.h>
 
-#include "statistics.h"
-
-void *
-vec_heap_p_reserve_exact (void *vec, int reserve MEM_STAT_DECL)
-{
-	return malloc(10000);
-}
+ALLOCATOR(tree_chunk, "tree_chunk");
