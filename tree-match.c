@@ -50,6 +50,8 @@ hole local_holes[LOCAL_MAX];
 
 static bool is_tmp_var(tree var)
 {
+	return false;
+#if 0
 	const char *name;
 	if (TREE_CODE(var) != VAR_DECL)
 		return false;
@@ -60,14 +62,17 @@ static bool is_tmp_var(tree var)
 
 	name = IDENTIFIER_POINTER(DECL_NAME(var));
 	return !strncmp(name, "D.", 2) || strchr(name, '.');
+#endif
 }
 
 /* If t is a cast expression, return the value without the cast.  */
 
 static tree substitute_cast_expr(tree t)
 {
+#if 0
 	if (TREE_CODE(t) == CONVERT_EXPR || TREE_CODE(t) == NOP_EXPR)
 		return TREE_OPERAND(t, 0);
+#endif
 
 	return NULL;
 }
@@ -79,6 +84,8 @@ static tree substitute_cast_expr(tree t)
 
 static tree substitute_tmp_var(tree var, cfg_node ctx_node, bool including_crt)
 {
+	return NULL;
+#if 0
 	tree val;
 	if (!is_tmp_var(var))
 		return NULL;
@@ -93,14 +100,6 @@ static tree substitute_tmp_var(tree var, cfg_node ctx_node, bool including_crt)
 		tree_scanf(cfg_node_stmt(ctx_node), "%t = (%_)%t",
 			   NULL, &var, &val))) {
 		if (including_crt) {
-			PP_TRACE(TRACE_MATCH_STEPS, {
-				 fprintf(stderr, "substitute_tmp_var(");
-				 print_generic_expr(stderr, var, 0);
-				 fprintf(stderr, ")=");
-				 lazy_print_generic_expr(stderr, val, 0);
-				 fprintf(stderr, "\n");
-				 }
-			);
 			return val;
 		} else
 			/* We are on a def, but exclude it => don't go up.  */
@@ -108,6 +107,7 @@ static tree substitute_tmp_var(tree var, cfg_node ctx_node, bool including_crt)
 	} else
 		/* We are not on a def => go up and try again.  */
 		return substitute_tmp_var(var, ctx_node->prev, true);
+#endif
 }
 
 static bool tree_equal_mod_tmps(tree, tree, cfg_node, cfg_node);
@@ -130,15 +130,6 @@ static bool tree_equal(tree t1, tree t2, cfg_node ctx_node1, cfg_node ctx_node2)
 
 	chunks1 = lazy_dump_generic_node(t1, 0, false);
 	chunks2 = lazy_dump_generic_node(t2, 0, false);
-
-	PP_TRACE(TRACE_MATCH_STEPS, {
-		 fprintf(stderr, "tree cmp:\n");
-		 lazy_print_generic_expr(stderr, t1, 0);
-		 fprintf(stderr, "vs:\n");
-		 lazy_print_generic_expr(stderr, t2, 0);
-		 fprintf(stderr, "---\n");
-		 }
-	);
 
 	len1 = VEC_length(tree_chunk, chunks1);
 	len2 = VEC_length(tree_chunk, chunks2);
@@ -178,6 +169,8 @@ tree_equal_mod_tmps(tree t1, tree t2, cfg_node ctx_node1, cfg_node ctx_node2)
 	if ((!t1 || !t2))
 		return (t1 == t2);
 
+	return tree_equal(t1, t2, ctx_node1, ctx_node2);
+#if 0
 	return (tree_equal(t1, t2, ctx_node1, ctx_node2)
 		|| ((val = substitute_tmp_var(t1, ctx_node1, false)) != NULL
 		    && tree_equal_mod_tmps(val, t2, ctx_node1, ctx_node2))
@@ -187,6 +180,7 @@ tree_equal_mod_tmps(tree t1, tree t2, cfg_node ctx_node1, cfg_node ctx_node2)
 		    && tree_equal_mod_tmps(val, t2, ctx_node1, ctx_node2))
 		|| ((val = substitute_cast_expr(t2)) != NULL
 		    && tree_equal_mod_tmps(t1, val, ctx_node1, ctx_node2)));
+#endif
 }
 
 static char tree_1st_char(tree);
@@ -280,50 +274,22 @@ match_chunks_pattinfo(VEC(tree_chunk, heap) * chunks, patt_info * patt,
 					  chunk_1st_char(chunks_lookahead
 							 (chunks, i + 1)));
 
-			PP_TRACE(TRACE_MATCH_STEPS,
-				 fprintf(stderr, "tree delimited by %c",
-					 next_char));
-			PP_TRACE(TRACE_MATCH_STEPS, {
-				 fprintf(stderr, "{match_tree_pattinfo(");
-				 print_generic_expr(stderr, chunk->t, 0);
-				 fprintf(stderr, ", \"%s\") ",
-					 patt->format_spec);
-				 });
-
 			if (!match_tree_pattinfo
 			    (chunk->t, patt, &next_char, ctx_node)) {
-				PP_TRACE(TRACE_MATCH_STEPS,
-					 fprintf(stderr,
-						 "=> fail tree chunk} "));
 				return 0;
 			}
 
-			PP_TRACE(TRACE_MATCH_STEPS,
-				 fprintf(stderr, "=> succeed tree chunk} "));
 		} else if (chunk->s) {
 			if (*patt->format_spec == '%') {
-				PP_TRACE(TRACE_MATCH_STEPS,
-					 fprintf(stderr,
-						 "fail str chunk '%s' vs hole",
-						 chunk->s));
 				return 0;
 			} else {
 				if (memcmp
 				    (patt->format_spec, chunk->s,
 				     strlen(chunk->s))) {
-					PP_TRACE(TRACE_MATCH_STEPS,
-						 fprintf(stderr,
-							 "fail str chunk '%s' vs patt '%s'",
-							 chunk->s,
-							 patt->format_spec));
 					return 0;
 				}
 
 				patt->format_spec += strlen(chunk->s);
-				PP_TRACE(TRACE_MATCH_STEPS,
-					 fprintf(stderr,
-						 "succeed str chunk '%s' vs patt",
-						 chunk->s));
 			}
 		} else {
 			/* one-character chunk */
@@ -332,31 +298,14 @@ match_chunks_pattinfo(VEC(tree_chunk, heap) * chunks, patt_info * patt,
 				while (*patt->format_spec == ' ')
 					patt->format_spec++;
 
-				PP_TRACE(TRACE_MATCH_STEPS,
-					 fprintf(stderr,
-						 "succeed space chunk vs patt whitespace"));
 			} else {
 				/* not whitespace */
 				if (*patt->format_spec == '%') {
-					PP_TRACE(TRACE_MATCH_STEPS,
-						 fprintf(stderr,
-							 "fail char chunk '%c' vs hole",
-							 chunk->c));
 					return 0;
 				} else {
 					if (*patt->format_spec != chunk->c) {
-						PP_TRACE(TRACE_MATCH_STEPS,
-							 fprintf(stderr,
-								 "fail char chunk '%c' vs patt '%c'",
-								 chunk->c,
-								 *patt->format_spec));
 						return 0;
 					}
-
-					PP_TRACE(TRACE_MATCH_STEPS,
-						 fprintf(stderr,
-							 "succeed char chunk '%c' vs patt",
-							 chunk->c));
 					patt->format_spec++;
 				}
 			}
@@ -410,15 +359,9 @@ match_tree_pattinfo(tree t, patt_info * patt, const char *delim,
 				      &t)
 				     || tree_scanf(cfg_node_stmt(ctx_node),
 						   "%t = (%_)%_", NULL, &t))) {
-					PP_TRACE(TRACE_MATCH_STEPS,
-						 fprintf(stderr,
-							 "refusing to assign tmpvar def to global hole"));
 					return 0;
 				}
 
-				PP_TRACE(TRACE_MATCH_STEPS,
-					 fprintf(stderr,
-						 "assign tree chunk to hole"));
 				*pt = t;
 				if (ph)
 					ph->ctx = ctx_node;
@@ -426,14 +369,8 @@ match_tree_pattinfo(tree t, patt_info * patt, const char *delim,
 				/* instantiated hole */
 				if (!tree_equal_mod_tmps
 				    (*pt, t, ph ? ph->ctx : NULL, ctx_node)) {
-					PP_TRACE(TRACE_MATCH_STEPS,
-						 fprintf(stderr,
-							 "fail eq tree chunk vs hole"));
 					return 0;
 				}
-				PP_TRACE(TRACE_MATCH_STEPS,
-					 fprintf(stderr,
-						 "succeed eq tree chunk vs hole"));
 			}
 		}
 		/* else (%_) just go on */
@@ -443,13 +380,8 @@ match_tree_pattinfo(tree t, patt_info * patt, const char *delim,
 		/* Can't swallow a whole tree, must recurse on it.  */
 		VEC(tree_chunk, heap) * chunks;
 
-		PP_TRACE(TRACE_MATCH_STEPS,
-			 fprintf(stderr, "check chunks vs patt"));
-
 		/* Check an eventual pattern-only '(' to be skipped.  */
 		if (patt->format_spec[0] == '\\' && patt->format_spec[1] == '(') {
-			PP_TRACE(TRACE_MATCH_STEPS,
-				 fprintf(stderr, "[skip lpar]"));
 			patt->format_spec += 2;
 			parskip = 1;
 		}
@@ -458,8 +390,6 @@ match_tree_pattinfo(tree t, patt_info * patt, const char *delim,
 		   cannot be in the pattern), so substitute it before.  */
 		while ((val = substitute_tmp_var(t, ctx_node, false)) != NULL
 		       || (val = substitute_cast_expr(t)) != NULL) {
-			PP_TRACE(TRACE_MATCH_STEPS,
-				 fprintf(stderr, "succeed subst tmp"));
 			t = val;
 		}
 
@@ -467,20 +397,13 @@ match_tree_pattinfo(tree t, patt_info * patt, const char *delim,
 		chunks = lazy_dump_generic_node(t, 0, false);
 		res = match_chunks_pattinfo(chunks, patt, delim, ctx_node);
 		pp_free_list(chunks);
-		PP_TRACE(TRACE_MATCH_STEPS, fprintf(stderr, "%s chunks vs patt",
-						    (res ? "succeed" :
-						     "fail")));
 
 		/* if needed, look for corresponding pattern-only ')' */
 		if (res && parskip) {
 			if (patt->format_spec[0] == '\\'
 			    && patt->format_spec[1] == ')') {
-				PP_TRACE(TRACE_MATCH_STEPS,
-					 fprintf(stderr, "[skip rpar]"));
 				patt->format_spec += 2;
 			} else {
-				PP_TRACE(TRACE_MATCH_STEPS,
-					 fprintf(stderr, "[no rpar!]"));
 				res = 0;
 			}
 		}
@@ -612,13 +535,7 @@ bool tree_scanf(tree t, const char *fmt, cfg_node ctx_node, ...)
 	va_start(ap, ctx_node);
 	patt.args_ptr = &ap;
 	patt.format_spec = fmt;
-	PP_TRACE(TRACE_MATCH_STEPS, {
-		 fprintf(stderr, "{tree_scanf(");
-		 print_generic_expr(stderr, t, 0);
-		 fprintf(stderr, ", \"%s\") ", fmt);
-		 });
 	res = match_tree_pattinfo(t, &patt, "", ctx_node);
-	PP_TRACE(TRACE_MATCH_STEPS, fprintf(stderr, "} "));
 	va_end(ap);
 
 	/* nothing left in the pattern ? */
@@ -640,9 +557,6 @@ bool tree_match(tree t, const char *fmt, cfg_node ctx_node)
 	patt.format_spec = fmt;
 	reset_local_holes();
 	res = match_tree_pattinfo(t, &patt, "", ctx_node);
-	PP_TRACE(TRACE_MATCH_STEPS,
-		 fprintf(stderr, "=>match returned %d, and fmt='%s'\n",
-			 res, patt.format_spec));
 
 	/* nothing left in the pattern ? */
 	if (res && (*patt.format_spec == '\0'))

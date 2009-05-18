@@ -95,11 +95,6 @@ static bool check_node(cfg_node node, condate cond)
 
 	TREE_VISITED(stmt) = 1;
 
-	PP_TRACE(TRACE_CHECK_STEPS, {
-		 fprintf(stderr, "checking stmt:");
-		 print_generic_expr(stderr, stmt, 0); fprintf(stderr, "\n");}
-	);
-
 	if (tree_match_disj(stmt, cond->to, node)) {
 		tree_check_warning(cond, stmt, OPT_ftree_checks_);
 		return 0;	/* follow_none */
@@ -107,8 +102,6 @@ static bool check_node(cfg_node node, condate cond)
 
 	/* Inspect successors? */
 	if (cond->avoid && tree_match_disj(stmt, cond->avoid, node)) {
-		PP_TRACE(TRACE_CHECK,
-			 fprintf(stderr, "via node, backtracking\n"));
 		return 0; /* follow_none */ ;
 	} else
 		return 1;	/* follow_all */
@@ -123,13 +116,7 @@ static void tree_check_instance(condate cond)
 	cfg_node node;
 	tree stmt;
 
-	PP_TRACE(TRACE_CHECK, {
-		 fprintf(stderr, "checking condate instance:\n");
-		 print_global_holes();});
-
 	/* Push from nodes on the stack.  */
-	PP_TRACE(TRACE_CHECK, fprintf(stderr, "searching src pat %s\n",
-				      cond->from->format_spec));
 
 	FOR_EACH_BB(bb) {
 		block_stmt_iterator bsi;
@@ -139,13 +126,6 @@ static void tree_check_instance(condate cond)
 			pattern patt;
 			stmt = bsi_stmt(bsi);
 			patt = cond->from;
-
-			PP_TRACE(TRACE_MATCH, {
-				 lazy_print_generic_expr(stderr, stmt, 0);
-				 fprintf(stderr, "= ");
-				 print_generic_expr(stderr, stmt, 0);
-				 fprintf(stderr, "\n");}
-			);
 
 			if (!patt
 			    || tree_match_disj(stmt, patt, bsi_cfg_node(bsi))) {
@@ -157,17 +137,9 @@ static void tree_check_instance(condate cond)
 				if (stmt)
 					TREE_VISITED(stmt) = 1;
 
-				PP_TRACE(TRACE_CHECK_STEPS, {
-					 fprintf(stderr, "found src stmt:");
-					 print_generic_expr(stderr, stmt, 0);
-					 fprintf(stderr, "\n");}
-				);
 			}
 		}
 	}
-
-	PP_TRACE(TRACE_CHECK, fprintf(stderr, "%d src stmts found\n",
-				      (unsigned)VEC_length(cfg_node, stack)));
 
 	/* Perform depth-first search.  */
 	while (VEC_length(cfg_node, stack) != 0) {
@@ -193,9 +165,6 @@ static void tree_check_instance(condate cond)
 					&& tree_match_disj(COND_EXPR_COND(stmt),
 							   cond->avoid_then,
 							   node))) {
-					PP_TRACE(TRACE_CHECK,
-						 fprintf(stderr,
-							 "via-then edge, skipping\n"));
 					continue;
 				}
 
@@ -205,9 +174,6 @@ static void tree_check_instance(condate cond)
 					&& tree_match_disj(COND_EXPR_COND(stmt),
 							   cond->avoid_else,
 							   node))) {
-					PP_TRACE(TRACE_CHECK,
-						 fprintf(stderr,
-							 "via-else edge, skipping\n"));
 					continue;
 				}
 
@@ -263,13 +229,6 @@ static void tree_scan(condate cond)
 		for (bsi = bsi_start(bb); !bsi_end_p(bsi); bsi_next(&bsi)) {
 			stmt = bsi_stmt(bsi);
 
-			PP_TRACE(TRACE_MATCH, {
-				 lazy_print_generic_expr(stderr, stmt, 0);
-				 fprintf(stderr, "= ");
-				 print_generic_expr(stderr, stmt, 0);
-				 fprintf(stderr, "\n");}
-			);
-
 			if (!cond->from
 			    || tree_match_disj(stmt, cond->from,
 					       bsi_cfg_node(bsi))) {
@@ -301,9 +260,6 @@ static void tree_check(condate cond)
 	stack = VEC_alloc(hole_p, heap, 10);
 	patt = cond->from;
 
-	PP_TRACE(TRACE_CHECK,
-		 fprintf(stderr, "searching src pat %s\n", patt->format_spec));
-
 	FOR_EACH_BB(bb) {
 		block_stmt_iterator bsi;
 		tree stmt;
@@ -311,28 +267,17 @@ static void tree_check(condate cond)
 		for (bsi = bsi_start(bb); !bsi_end_p(bsi); bsi_next(&bsi)) {
 			stmt = bsi_stmt(bsi);
 
-			PP_TRACE(TRACE_MATCH, {
-				 lazy_print_generic_expr(stderr, stmt, 0);
-				 fprintf(stderr, "= ");
-				 print_generic_expr(stderr, stmt, 0);
-				 fprintf(stderr, "\n");}
-			);
-
 			if (!patt
 			    || tree_match_disj(stmt, patt, bsi_cfg_node(bsi)))
 				push_global_holes_if_new(stack);
 		}
 	}
 
-	PP_TRACE(TRACE_CHECK, fprintf(stderr, "%d condate instances found\n",
-				      VEC_length(hole_p, stack)));
-
 	while (VEC_length(hole_p, stack)) {
 		hole_p h = VEC_pop(hole_p, stack);
 
 		restore_global_holes(h);
 		tree_check_instance(cond);
-		PP_TRACE(TRACE_CHECK, fprintf(stderr, "recounting stmts\n"));
 		tree_check_init();	/* clear visited flag */
 	}
 
@@ -365,10 +310,6 @@ static void execute_conds(condate conds[], int n)
 
 	for (i = 0; i < n; i++) {
 		cond = conds[i];
-		PP_TRACE(TRACE_CHECK, {
-			 print_cond(cond);}
-		);
-
 		tree_check(cond);
 	}
 }
@@ -395,25 +336,25 @@ FILE *checkfile;
 
 /* Parse the file containing condates definitions, and cache the result.  */
 
-static int parse_tree_check_file_once(void)
+static int parse_check_file_once(const char *file)
 {
 	static const char *current_check_file = NULL;
 
 	if (current_check_file) {
 		/* Not called for the first time.  */
-		if (!strcmp(current_check_file, tree_check_file))
+		if (!strcmp(current_check_file, file))
 			/* file hasn't changed */
 			return 0;
 		else
 			delete_conds(conds, n_conds);
 	}
 
-	current_check_file = tree_check_file;
-	checkfile = fopen(tree_check_file, "r");
+	current_check_file = file;
+	checkfile = fopen(file, "r");
 
 	if (!checkfile) {
 		fprintf(stderr, "tree-check-file %s not found\n",
-			tree_check_file);
+			file);
 		return -1;
 	}
 
@@ -429,21 +370,13 @@ static int parse_tree_check_file_once(void)
 /* Main function of the tree-check pass.  Triggered either by
    -ftree-check or -ftree-checks.  */
 
-static unsigned int execute_tree_check(void)
+unsigned int
+execute_tree_check(const char *file, const char *tree_check_string)
 {
-	const char *fn_name =
-	    IDENTIFIER_POINTER(DECL_NAME(current_function_decl));
-
-	PP_TRACE(TRACE_CHECK, fprintf(stderr, "function %s() {\n", fn_name));
-	PP_TRACE(TRACE_CHECK,
-		 fprintf(stderr,
-			 "Executing tree reachability checks: file=%s, string=%s\n",
-			 tree_check_file, tree_check_string));
-	PP_TRACE(TRACE_CHECK, fprintf(stderr, "counting stmts\n"));
 	tree_check_init();
 
-	if (tree_check_file) {
-		if (parse_tree_check_file_once() < 0)
+	if (file) {
+		if (parse_check_file_once() < 0)
 			return 0;
 	} else {
 		/* tree_check_string != NULL */
@@ -458,10 +391,10 @@ static unsigned int execute_tree_check(void)
 	}
 	execute_conds(conds, n_conds);
 
-	PP_TRACE(TRACE_CHECK, fprintf(stderr, "}\n"));
 	return 0;
 }
 
+#if 0
 static bool gate_tree_check(void)
 {
 	return ((tree_check_file != 0 || tree_check_string != 0)
@@ -483,3 +416,4 @@ struct tree_opt_pass pass_check = {
 	0,			/* todo_flags_finish */
 	0			/* letter */
 };
+#endif

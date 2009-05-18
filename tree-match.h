@@ -221,17 +221,3 @@ extern void add_condate(condate cond);
 
 extern FILE *checkfile;
 extern int condate_parse(void);
-
-/* Tracing levels & macros.  */
-enum trace_level {
-	TRACE_ALWAYS = 0,
-	TRACE_CHECK,
-	TRACE_CHECK_STEPS,
-	TRACE_MATCH,
-	TRACE_MATCH_STEPS
-};
-
-/* Current tracing level.  */
-#define pp_trace_level TRACE_ALWAYS
-/* Use this macro to conditionally execute a tracing action.  */
-#define PP_TRACE(lev, stmt) if (lev <= pp_trace_level) stmt;
