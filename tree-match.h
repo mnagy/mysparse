@@ -20,21 +20,31 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 02110-1301, USA.  */
 
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include <sparse/parse.h>
+
+#include "coretypes.h"
+#include "statistics.h"
+#include "vec.h"
+
 /* At the statement level, a node in the CFG has the following type.  */
-typedef struct tree_statement_list_node *cfg_node;
+//typedef struct tree_statement_list_node *cfg_node;
+typedef struct statement *cfg_node;
 
 DEF_VEC_P(cfg_node);
 DEF_VEC_ALLOC_P(cfg_node, heap);
 
 /* Accessor for a CFG node.  */
-static inline tree cfg_node_stmt(cfg_node node)
+static inline struct statement *cfg_node_stmt(cfg_node node)
 {
-	return node->stmt;
+	return node;
 }
 
+/* XXX: Hopefuly, we won't be needing these.. */
+#if 0
 /* Map a statement iterator to a CFG node.  */
 static inline cfg_node bsi_cfg_node(block_stmt_iterator bsi)
 {
@@ -46,6 +56,7 @@ static inline cfg_node bb_1st_cfg_node(basic_block bb)
 {
 	return STATEMENT_LIST_HEAD(bb->stmt_list);
 }
+#endif
 
 static inline void *xmalloc(size_t size)
 {
@@ -124,7 +135,7 @@ static inline void pat_print(pattern p)
    context is useful to interpret temporary variables, or other
    dataflow data.  */
 typedef struct hole_s {
-	tree tree;
+	struct statement *tree;
 	cfg_node ctx;
 } hole;
 
@@ -157,9 +168,9 @@ extern void print_local_holes(void);
 extern void print_global_holes(void);
 
 /* User interface to AST pattern matching.  */
-extern bool tree_scanf(tree t, const char *fmt, cfg_node ctx_node, ...);
-extern bool tree_match(tree t, const char *fmt, cfg_node ctx_node);
-extern bool tree_match_disj(tree t, pattern fmt, cfg_node ctx_node);
+extern bool tree_scanf(struct statement *t, const char *fmt, cfg_node ctx_node, ...);
+extern bool tree_match(struct statement *t, const char *fmt, cfg_node ctx_node);
+extern bool tree_match_disj(struct statement *t, pattern fmt, cfg_node ctx_node);
 
 /* A "condate" is a program property involving CONtrol, DATa, and
    other aspects such as syntactic and semantic information.  For

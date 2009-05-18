@@ -27,7 +27,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
    condate (control & data property to be checked) is described in
    tree-match.h.  */
 
-static void tree_check_warning(condate cond, tree stmt, int check_option)
+static void tree_check_warning(condate cond, struct statement *stmt, int check_option)
 {
 	/* FIXME: Use sparse_warning() and struct position here */
 	fprintf(stderr, "I have found something\n");
@@ -216,6 +216,31 @@ static void push_global_holes_if_new(VEC(hole_p, heap) * stack)
 /* Check a trivial condate consisting only in a (FROM) pattern. 
    This comes to reporting every match of the pattern in a function.  */
 
+static void tree_scan(struct symbol_list *list, condate cond)
+{
+	struct symbol *sym;
+
+	FOR_EACH_PTR(list, sym) {
+		struct statement *stmt;
+
+		if (!sym->ctype.base_type
+		    && sym->ctype.base_type->type != SYM_FN)
+			continue;
+
+		/* FIXME: This is butt-ugly.. */
+		FOR_EACH_PTR(sym->ctype.base_type->stmt->stmts, stmt) {
+			if (!cond->from
+			    || tree_match_disj(stmt, cond->from, NULL)) {
+				// XXX: 0 is for "not verbose"
+				tree_check_warning(cond, stmt, 0);
+				reset_global_holes();
+			}
+		} END_FOR_EACH_PTR(stmt);
+	} END_FOR_EACH_PTR(sym);
+}
+
+/* This is the old function.. */
+#if 0
 static void tree_scan(condate cond)
 {
 	basic_block bb;
@@ -239,10 +264,11 @@ static void tree_scan(condate cond)
 		}
 	}
 }
+#endif
 
 /* Check a condate on a function.  */
 
-static void tree_check(condate cond)
+static void tree_check(struct symbol_list *list, condate cond)
 {
 /* FIXME: For now, let's just tree_scan() */
 #if 0
@@ -253,7 +279,7 @@ static void tree_check(condate cond)
 
 	/* Check for trivial condates.  */
 	if (!cond->to) {
-		tree_scan(cond);
+		tree_scan(list, cond);
 		return;
 	}
 
@@ -307,14 +333,14 @@ void print_cond(condate cond)
 
 /* Check a list of condates on the current function.  */
 
-static void execute_conds(condate conds[], int n)
+static void execute_conds(condate conds[], int n, struct symbol_list *list)
 {
 	int i;
 	condate cond;
 
 	for (i = 0; i < n; i++) {
 		cond = conds[i];
-		tree_check(cond);
+		tree_check(list, cond);
 	}
 }
 
@@ -375,7 +401,7 @@ static int parse_check_file_once(const char *file)
    -ftree-check or -ftree-checks.  */
 
 void
-execute_tree_check(const char *file, const char *string)
+execute_tree_check(const char *file, const char *string, struct symbol_list *list)
 {
 	tree_check_init();
 
@@ -392,5 +418,5 @@ execute_tree_check(const char *file, const char *string)
 			current_check_string = string;
 		}
 	}
-	execute_conds(conds, n_conds);
+	execute_conds(conds, n_conds, list);
 }

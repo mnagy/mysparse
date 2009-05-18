@@ -137,6 +137,10 @@ static bool tree_equal(tree t1, tree t2, cfg_node ctx_node1, cfg_node ctx_node2)
 	if (len1 != len2)
 		goto mismatch;
 
+	/* XXX: This loop will iterate through tree chunks and
+	 * compare them. I think that with sparse, we could just
+	 * write a function to compare the trees and be done with it.
+	 */
 	for (i = 0; VEC_iterate(tree_chunk, chunks1, i, chunk1); i++) {
 		chunk2 = VEC_index(tree_chunk, chunks2, i);
 
@@ -164,7 +168,7 @@ static bool tree_equal(tree t1, tree t2, cfg_node ctx_node1, cfg_node ctx_node2)
 static bool
 tree_equal_mod_tmps(tree t1, tree t2, cfg_node ctx_node1, cfg_node ctx_node2)
 {
-	tree val;
+	//tree val;
 
 	if ((!t1 || !t2))
 		return (t1 == t2);
@@ -268,6 +272,7 @@ match_chunks_pattinfo(VEC(tree_chunk, heap) * chunks, patt_info * patt,
 
 	for (i = 0; VEC_iterate(tree_chunk, chunks, i, chunk); i++) {
 		if (chunk->t) {
+			/* XXX: Get next char from a tree. */
 			/* Compute delimiter for t.  */
 			char next_char = (i + 1 == VEC_length(tree_chunk,
 							      chunks) ? *delim :
@@ -331,7 +336,7 @@ match_tree_pattinfo(tree t, patt_info * patt, const char *delim,
 	int parskip = 0;
 	tree val;
 
-	if (patt->format_spec[0] == '%' && TREE_CODE(t) != TREE_LIST	/* don't match entire lists */
+	if (patt->format_spec[0] == '%'
 	    && *delim == pattern_lookahead(patt, 2)) {
 		/* lookahead(1) ok */
 		if (patt->format_spec[1] != '_') {
@@ -353,6 +358,8 @@ match_tree_pattinfo(tree t, patt_info * patt, const char *delim,
 			if (!*pt) {
 				/* var hole */
 				/* refuse to catch a tmpvar def */
+				/* XXX: We don't do temporary variables.. */
+#if 0
 				if (is_tmp_var(t) && ctx_node &&
 				    (tree_scanf
 				     (cfg_node_stmt(ctx_node), "%t = %_", NULL,
@@ -361,6 +368,7 @@ match_tree_pattinfo(tree t, patt_info * patt, const char *delim,
 						   "%t = (%_)%_", NULL, &t))) {
 					return 0;
 				}
+#endif
 
 				*pt = t;
 				if (ph)
@@ -386,12 +394,15 @@ match_tree_pattinfo(tree t, patt_info * patt, const char *delim,
 			parskip = 1;
 		}
 
+		/* XXX: Commented out for now */
+#if 0
 		/* On a tmpvar or a cast, there is no point to recurse directly (they
 		   cannot be in the pattern), so substitute it before.  */
 		while ((val = substitute_tmp_var(t, ctx_node, false)) != NULL
 		       || (val = substitute_cast_expr(t)) != NULL) {
 			t = val;
 		}
+#endif
 
 		maybe_init_pretty_print(stdout);
 		chunks = lazy_dump_generic_node(t, 0, false);
