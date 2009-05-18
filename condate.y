@@ -53,8 +53,8 @@ start: /* empty */
 		 name_condate($2);
 		 add_condate($2);};
 
-condate: CONDATE IDENT '{' crq '}' 
-         WARNING '(' STR ')' ';' {$$ = $4; 
+condate: CONDATE IDENT '{' crq '}'
+         WARNING '(' STR ')' ';' {$$ = $4;
 	   ((condate)$$)->name = $2; ((condate)$$)->msg = $8;}
 | crq ';' {$$ = $1;};
 
@@ -87,9 +87,9 @@ sempat: /* empty */
 #include <ctype.h>
 
 /* The folowing should be bigger than all of the folowing:
- - the maximal keyword length 
+ - the maximal keyword length
  - the maximal pattern length
- - the maximal length of a CCODE block. 
+ - the maximal length of a CCODE block.
  Note: this ugly limit should be eliminated by writing the lexer in Flex.
 */
 #define MAX_KEYWORD_LEN 1024
@@ -98,21 +98,21 @@ int
 yylex (void)
 {
   int c;
-  static char buf[MAX_KEYWORD_LEN + 1]; 
+  static char buf[MAX_KEYWORD_LEN + 1];
   int len;
   static int afterbar = 0;
 
   c = getc (checkfile);
   /* Skip white space and comments. */
-  do 
+  do
     {
-      while (c == ' ' || c == '\t' || c == '\n') 
+      while (c == ' ' || c == '\t' || c == '\n')
 	c = getc (checkfile);
-      if(c == '#') 
+      if(c == '#')
 	{
 	  while ((c = getc (checkfile)) != '\n' && c != EOF)
 	    ;
-	  if (c == '\n') 
+	  if (c == '\n')
 	    c = getc (checkfile);
 	}
     } while(c == ' ' || c == '\t' || c == '#' || c == '\n');
@@ -125,7 +125,7 @@ yylex (void)
   if (c == '+' || c == '-' || c == ';'
       || c == '}' || c == '(' || c == ')')
     return c;
-  if (c == '|') 
+  if (c == '|')
     {
       afterbar = 1;
       return c;
@@ -147,12 +147,12 @@ yylex (void)
     }
 
   /* Meaning of '{' is context-dependent: */
-  if (c == '{') 
+  if (c == '{')
     {
       if (!afterbar)
 	return c;
       else
-	{ /* Process C code. */     
+	{ /* Process C code. */
 	  len = 0;
 	  while ((c = getc (checkfile)) != '}' && c != EOF && len < MAX_KEYWORD_LEN)
 	    {
@@ -167,7 +167,7 @@ yylex (void)
 	}
     }
   /* Recognize keywords & identifiers */
-  if (isalpha(c)) 
+  if (isalpha(c))
     {
       len = 0;
       buf[len++] = c;
@@ -214,7 +214,7 @@ yyerror (char const *s)
     strcpy(buf, "end of file");
   else
     fgets (buf, 32, checkfile);
-  fprintf (stderr, "%s: before or near: \"%s\"\n", 
+  fprintf (stderr, "%s: before or near: \"%s\"\n",
 	   tree_check_file, buf);
 }
 
@@ -230,37 +230,37 @@ split_pattern (pattern p)
   struct split_pattern_s sp;
   if (!p)
     sp.p1 = sp.p2 = sp.p3 = NULL;
-  else 
+  else
     {
       sp = split_pattern(p->next);
-      if (p->sign == 0) 
+      if (p->sign == 0)
 	{
-	  p->next = sp.p1; 
+	  p->next = sp.p1;
 	  sp.p1 = p;
-	} 
-      else if (p->sign > 0) 
+	}
+      else if (p->sign > 0)
 	{
-	  p->next = sp.p2; 
+	  p->next = sp.p2;
 	  sp.p2 = p;
-	} 
-      else 
+	}
+      else
 	{
-	  p->next = sp.p3; 
+	  p->next = sp.p3;
 	  sp.p3 = p;
 	}
     }
   return sp;
 }
 
-/* Normalize a condate by separating the avoid patterns into: 
+/* Normalize a condate by separating the avoid patterns into:
   - avoid (unsigned edge patterns),
   - avoid_then (positive edge patterns), and
   - avoid_else (negative edge patterns).
- Normalization conserves the meaning of a condate, but optimizes its matching. 
+ Normalization conserves the meaning of a condate, but optimizes its matching.
  Note: we assume that the initial condate contains only 'avoid' patterns.
 */
-void 
-normalize_condate (condate cond) 
+void
+normalize_condate (condate cond)
 {
   struct split_pattern_s sp = split_pattern (cond->avoid);
   cond->avoid = sp.p1;
@@ -268,10 +268,10 @@ normalize_condate (condate cond)
   cond->avoid_else = sp.p3;
 }
 
-void 
+void
 name_condate (condate cond)
 {
-  if(!cond->name) 
+  if(!cond->name)
     {
       cond->name = xmalloc (strlen (tree_check_file) + 6);
       strcpy (cond->name, tree_check_file);
@@ -279,8 +279,8 @@ name_condate (condate cond)
     }
 }
 
-void 
-add_condate (condate cond) 
+void
+add_condate (condate cond)
 {
   static int warned = 0;
   if (n_conds == CONDMAX && !warned)
