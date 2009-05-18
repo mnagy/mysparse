@@ -26,6 +26,8 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 
 %{
   #define YYSTYPE void *
+  #include <stdio.h>
+  #include <string.h>
   #include "tree-match.h"
   int yylex (void);
   void yyerror (char const *);
@@ -206,8 +208,12 @@ void
 yyerror (char const *s)
 {
   char buf[32];
+  buf[0] = '\0';
   fprintf (stderr, "%s: %s\n", tree_check_file, s);
-  fgets (buf, 32, checkfile);
+  if (feof(checkfile))
+    strcpy(buf, "end of file");
+  else
+    fgets (buf, 32, checkfile);
   fprintf (stderr, "%s: before or near: \"%s\"\n", 
 	   tree_check_file, buf);
 }
