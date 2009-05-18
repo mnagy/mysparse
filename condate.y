@@ -27,10 +27,16 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 %{
   #define YYSTYPE void *
   #include <stdio.h>
+  #include <stdlib.h>
   #include <string.h>
   #include "tree-match.h"
   int yylex (void);
   void yyerror (char const *);
+
+  /* TODO: Figure out how to pass arguments to bison-generated parse()
+   * function and rename tree_check_file and use it instead.
+   */
+  const char tree_check_file[] = "no_name";
 
 %}
 

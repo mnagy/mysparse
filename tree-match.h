@@ -47,6 +47,22 @@ static inline cfg_node bb_1st_cfg_node(basic_block bb)
 	return STATEMENT_LIST_HEAD(bb->stmt_list);
 }
 
+static inline void *xmalloc(size_t size)
+{
+	void *ret = malloc(size);
+	if (!ret)
+		exit(1);
+	return ret;
+}
+
+static inline char *xstrdup(const char *s)
+{
+	char *ret = strdup(s);
+	if (!ret)
+		exit(1);
+	return ret;
+}
+
 /* Patterns are of 2 kinds:
    1. with named holes, as in: "lock(%X, %Y)"
    2. with anonymous holes, as in: tree_scanf(t, "lock(%t, %t)", &t1, &t2)
